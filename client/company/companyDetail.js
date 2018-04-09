@@ -992,13 +992,13 @@ Template.companyElectInfo.helpers({
 Template.companyElectInfo.events({
   'click [data-action="contendManager"]'(event, templateInstance) {
     event.preventDefault();
-    const instanceData = templateInstance.data;
-    const companyName = instanceData.companyName;
+    const { _id: companyId, companyName } = templateInstance.data;
     alertDialog.confirm({
       message: '你確定要參與競爭「' + companyName + '」的經理人職位嗎？',
-      callback: (result) => {
+      recaptcha: true,
+      callback: (result, recaptchaResponse) => {
         if (result) {
-          Meteor.customCall('contendManager', instanceData._id);
+          Meteor.customCall('contendManager', { companyId, recaptchaResponse });
         }
       }
     });
@@ -1009,28 +1009,30 @@ Template.companyElectInfo.events({
     if (! user) {
       return false;
     }
-    const instanceData = templateInstance.data;
-    const candidateList = instanceData.candidateList;
+
+    const { _id: companyId, candidateList, voteList } = templateInstance.data;
     const candidateIndex = parseInt($(event.currentTarget).attr('data-support-candidate'), 10);
-    const candidate = candidateList[candidateIndex];
-    const supportList = instanceData.voteList[candidateIndex];
+    const candidateId = candidateList[candidateIndex];
+    const supportList = voteList[candidateIndex];
+
     $.ajax({
       url: '/userInfo',
       data: {
-        id: candidate
+        id: candidateId
       },
       dataType: 'json',
       success: (userData) => {
         const userName = userData.name;
         if (_.contains(supportList, user._id)) {
-          alertDialog.alert('你已經正在支持使用者' + userName + '了，無法再次進行支持！');
+          alertDialog.alert(`您已經正在支持使用者${userName}了，無法再次進行支持！`);
         }
         else {
           alertDialog.confirm({
-            message: '你確定要支持候選人「' + userName + '」嗎？',
-            callback: (result) => {
+            message: `您確定要支持候選人「${userName}」嗎？`,
+            recaptcha: true,
+            callback: (result, recaptchaResponse) => {
               if (result) {
-                Meteor.customCall('supportCandidate', instanceData._id, candidate);
+                Meteor.customCall('supportCandidate', { companyId, supportUserId: candidateId, recaptchaResponse });
               }
             }
           });

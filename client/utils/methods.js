@@ -57,7 +57,7 @@ export function createBuyOrder(user, companyData) {
     return false;
   }
 
-  const companyId = companyData._id;
+  const { _id: companyId, companyName } = companyData;
   const existsSellOrder = dbOrders.findOne({
     companyId: companyId,
     userId: user._id,
@@ -83,9 +83,10 @@ export function createBuyOrder(user, companyData) {
     return false;
   }
 
-  alertDialog.dialog({
-    type: 'prompt',
-    title: '股份購入',
+  const title = '股份購入';
+
+  alertDialog.prompt({
+    title,
     message: `請輸入您期望購入的每股單價：(${currencyFormat(minimumUnitPrice)}~${currencyFormat(maximumUnitPrice)})`,
     inputType: 'number',
     customSetting: `min="${minimumUnitPrice}" max="${maximumUnitPrice}"`,
@@ -107,7 +108,7 @@ export function createBuyOrder(user, companyData) {
       }
       alertDialog.dialog({
         type: 'prompt',
-        title: '股份購入',
+        title,
         message: `請輸入總購入數量：(1~${maximumAmount})`,
         inputType: 'number',
         customSetting: `min="1" max="${maximumAmount}"`,
@@ -121,7 +122,21 @@ export function createBuyOrder(user, companyData) {
 
             return false;
           }
-          Meteor.customCall('createBuyOrder', { companyId, unitPrice, amount });
+
+          alertDialog.confirm({
+            title,
+            message: `確定以 $${currencyFormat(unitPrice)} 的價格<span class="text-info">購入</span> ${amount} 股的「${companyName}」股票嗎？`,
+            recaptcha: true,
+            callback(result, recaptchaResponse) {
+              if (! result) {
+                return;
+              }
+              Meteor.customCall('createBuyOrder', {
+                orderData: { companyId, unitPrice, amount },
+                recaptchaResponse
+              });
+            }
+          });
         }
       });
     }
@@ -136,7 +151,7 @@ export function createSellOrder(user, companyData) {
   }
 
   const userId = user._id;
-  const companyId = companyData._id;
+  const { _id: companyId, companyName } = companyData;
   const existsBuyOrder = dbOrders.findOne({
     companyId: companyId,
     userId: userId,
@@ -155,9 +170,10 @@ export function createSellOrder(user, companyData) {
   else {
     maximumUnitPrice = Math.ceil(companyData.listPrice * 1.15);
   }
-  alertDialog.dialog({
-    type: 'prompt',
-    title: '股份賣出',
+
+  const title = '股份賣出';
+  alertDialog.prompt({
+    title,
     message: `請輸入您期望賣出的每股單價：(${currencyFormat(minimumUnitPrice)}~${currencyFormat(maximumUnitPrice)})`,
     inputType: 'number',
     customSetting: `min="${minimumUnitPrice}" max="${maximumUnitPrice}"`,
@@ -173,9 +189,8 @@ export function createSellOrder(user, companyData) {
       }
       const directorData = dbDirectors.findOne({ userId, companyId });
       const maximumAmount = directorData.stocks;
-      alertDialog.dialog({
-        type: 'prompt',
-        title: '股份賣出',
+      alertDialog.prompt({
+        title,
         message: `請輸入總賣出數量：(1~${maximumAmount})`,
         inputType: 'number',
         customSetting: `min="1" max="${maximumAmount}"`,
@@ -189,7 +204,21 @@ export function createSellOrder(user, companyData) {
 
             return false;
           }
-          Meteor.customCall('createSellOrder', { companyId, unitPrice, amount });
+
+          alertDialog.confirm({
+            title,
+            message: `確定以 $${currencyFormat(unitPrice)} 的價格<span class="text-info">賣出</span> ${amount} 股的「${companyName}」股票嗎？`,
+            recaptcha: true,
+            callback(result, recaptchaResponse) {
+              if (! result) {
+                return;
+              }
+              Meteor.customCall('createSellOrder', {
+                orderData: { companyId, unitPrice, amount },
+                recaptchaResponse
+              });
+            }
+          });
         }
       });
     }
@@ -273,9 +302,10 @@ export function voteProduct(productId) {
   }
   alertDialog.confirm({
     message: `您的推薦票剩餘${user.profile.voteTickets}張，確定要向產品投出推薦票嗎？`,
-    callback: (result) => {
+    recaptcha: true,
+    callback: (result, recaptchaResponse) => {
       if (result) {
-        Meteor.customCall('voteProduct', productId);
+        Meteor.customCall('voteProduct', { productId, recaptchaResponse });
       }
     }
   });
@@ -326,13 +356,14 @@ export function investFoundCompany(companyId) {
       </div>
     `,
     defaultValue: null,
-    callback: function(result) {
+    recaptcha: true,
+    callback: function(result, recaptchaResponse) {
       const amount = parseInt(result, 10);
       if (! amount) {
         return false;
       }
       if (amount >= minimumInvest && amount <= maximumInvest) {
-        Meteor.customCall('investFoundCompany', companyId, amount);
+        Meteor.customCall('investFoundCompany', { companyId, amount, recaptchaResponse });
       }
       else {
         alertDialog.alert('不正確的金額數字！');

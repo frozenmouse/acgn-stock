@@ -4,21 +4,24 @@ import { check, Match } from 'meteor/check';
 
 import { dbAdvertising } from '/db/dbAdvertising';
 import { dbLog } from '/db/dbLog';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { resourceManager } from '/server/imports/threading/resourceManager';
 import { debug } from '/server/imports/utils/debug';
 
 Meteor.methods({
-  addAdvertisingPay(advertisingId, addPay) {
+  addAdvertisingPay({ advertisingId, amount, recaptchaResponse }) {
     check(this.userId, String);
     check(advertisingId, String);
-    check(addPay, Match.Integer);
-    addAdvertisingPay(Meteor.user(), advertisingId, addPay);
+    check(amount, Match.Integer);
+    verifyRecaptchaResponse(recaptchaResponse);
+
+    addAdvertisingPay(Meteor.user(), advertisingId, amount);
 
     return true;
   }
 });
-function addAdvertisingPay(user, advertisingId, addPay) {
-  debug.log('addAdvertisingPay', { user, advertisingId, addPay });
+function addAdvertisingPay(user, advertisingId, amount) {
+  debug.log('addAdvertisingPay', { user, advertisingId, addPay: amount });
   if (user.profile.isInVacation) {
     throw new Meteor.Error(403, '您現在正在渡假中，請好好放鬆！');
   }
@@ -28,10 +31,10 @@ function addAdvertisingPay(user, advertisingId, addPay) {
   if (user.profile.notPayTax) {
     throw new Meteor.Error(403, '您現在有稅單逾期未繳！');
   }
-  if (addPay < 1) {
+  if (amount < 1) {
     throw new Meteor.Error(403, '追加費用額度錯誤！');
   }
-  if (user.profile.money < addPay) {
+  if (user.profile.money < amount) {
     throw new Meteor.Error(403, '剩餘金錢不足，無法追加廣告費用！');
   }
   const advertisingData = dbAdvertising.findOne(advertisingId, {
@@ -51,7 +54,7 @@ function addAdvertisingPay(user, advertisingId, addPay) {
         profile: 1
       }
     });
-    if (user.profile.money < addPay) {
+    if (user.profile.money < amount) {
       throw new Meteor.Error(403, '剩餘金錢不足，無法追加廣告費用！');
     }
     const createdAt = new Date();
@@ -59,21 +62,13 @@ function addAdvertisingPay(user, advertisingId, addPay) {
       logType: '廣告追加',
       userId: [userId],
       data: {
-        cost: addPay,
+        cost: amount,
         message: advertisingData.message
       },
       createdAt: createdAt
     });
-    Meteor.users.update(userId, {
-      $inc: {
-        'profile.money': addPay * -1
-      }
-    });
-    dbAdvertising.update(advertisingId, {
-      $inc: {
-        paid: addPay
-      }
-    });
+    Meteor.users.update(userId, { $inc: { 'profile.money': amount * -1 } });
+    dbAdvertising.update(advertisingId, { $inc: { paid: amount } });
     release();
   });
 }

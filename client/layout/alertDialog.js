@@ -1,5 +1,6 @@
 'use strict';
 import { $ } from 'meteor/jquery';
+import { Meteor } from 'meteor/meteor';
 import { Template } from 'meteor/templating';
 import { ReactiveVar } from 'meteor/reactive-var';
 
@@ -12,6 +13,7 @@ let strAlertDialogInputType = 'text';
 let strAlertDialogCustomSetting = '';
 let funcAlertDialogCallback = null;
 let blAlertDialogOK = false;
+let blRecaptcha = false;
 
 export const alertDialog = {
   dialog: function(options) {
@@ -22,6 +24,7 @@ export const alertDialog = {
     strAlertDialogDefaultValue = options.defaultValue || null;
     strAlertDialogCustomSetting = options.customSetting || '';
     funcAlertDialogCallback = options.callback;
+    blRecaptcha = options.recaptcha || false;
     blAlertDialogOK = false;
     rShowAlertDialog.set(true);
   },
@@ -73,13 +76,26 @@ Template.alertDialog.onRendered(function() {
   }
 
   $(document).on('keydown.alertDialog', (e) => {
-    if (e.which === 13) {
+    if (e.which === 13) { // return
       $form.trigger('submit');
     }
-    else if (e.which === 27) {
+    else if (e.which === 27) { // ESC
       $form.trigger('reset');
     }
   });
+
+  if (blRecaptcha) {
+    this.recaptchaClientId = grecaptcha.render(this.$('.g-recaptcha')[0], {
+      sitekey: Meteor.settings.public.recaptchaSiteKey,
+      badge: 'inline',
+      size: 'invisible',
+      hl: 'zh-tw',
+      callback: (recaptchaResponse) => {
+        this.recaptchaResponse = recaptchaResponse;
+        rShowAlertDialog.set(false);
+      }
+    });
+  }
 });
 Template.alertDialog.onDestroyed(function() {
   $(document).off('keydown.alertDialog');
@@ -90,11 +106,11 @@ Template.alertDialog.onDestroyed(function() {
     const value = this.$('input').val();
     this.$('input').val('');
     if (callback) {
-      callback(ok && value);
+      callback(ok && value, this.recaptchaResponse);
     }
   }
   else if (callback) {
-    callback(ok);
+    callback(ok, this.recaptchaResponse);
   }
 });
 Template.alertDialog.helpers({
@@ -120,6 +136,9 @@ Template.alertDialog.helpers({
   },
   showCancelButton() {
     return strAlertDialogType !== 'alert';
+  },
+  recaptchaEnabled() {
+    return blRecaptcha;
   }
 });
 Template.alertDialog.events({
@@ -134,9 +153,16 @@ Template.alertDialog.events({
     blAlertDialogOK = false;
     rShowAlertDialog.set(false);
   },
-  submit(event) {
+  submit(event, templateInstance) {
     event.preventDefault();
+
     blAlertDialogOK = true;
-    rShowAlertDialog.set(false);
+
+    if (blRecaptcha) {
+      grecaptcha.execute(templateInstance.recaptchaClientId);
+    }
+    else {
+      rShowAlertDialog.set(false);
+    }
   }
 });

@@ -7,17 +7,20 @@ import { dbCompanies } from '/db/dbCompanies';
 import { dbOrders } from '/db/dbOrders';
 import { dbVariables } from '/db/dbVariables';
 import { limitMethod } from '/server/imports/utils/rateLimit';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { createOrder } from '/server/imports/createOrder';
 import { debug } from '/server/imports/utils/debug';
 
 Meteor.methods({
-  createBuyOrder(orderData) {
+  createBuyOrder({ orderData, recaptchaResponse }) {
     check(this.userId, String);
     check(orderData, {
       companyId: String,
       unitPrice: Match.Integer,
       amount: Match.Integer
     });
+    verifyRecaptchaResponse(recaptchaResponse);
+
     createBuyOrder(Meteor.user(), orderData);
 
     return true;

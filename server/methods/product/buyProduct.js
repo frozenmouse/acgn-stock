@@ -8,14 +8,17 @@ import { dbVips, roundVipScore } from '/db/dbVips';
 import { dbCompanies } from '/db/dbCompanies';
 import { dbLog } from '/db/dbLog';
 import { limitMethod } from '/server/imports/utils/rateLimit';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { debug } from '/server/imports/utils/debug';
 import { guardUser, guardCompany, guardProduct } from '/common/imports/guards';
 
 Meteor.methods({
-  buyProduct({ productId, amount }) {
+  buyProduct({ productId, amount, recaptchaResponse }) {
     check(this.userId, String);
     check(productId, String);
     check(amount, Match.Integer);
+    verifyRecaptchaResponse(recaptchaResponse);
+
     buyProduct({ userId: this.userId, productId, amount });
 
     return true;

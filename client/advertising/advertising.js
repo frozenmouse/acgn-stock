@@ -112,10 +112,11 @@ function showAskAddPayDialog(advertisingId) {
     inputType: 'number',
     defaultValue: 1,
     customSetting: `min="1"`,
-    callback: (result) => {
-      const addPay = parseInt(result, 10);
-      if (addPay) {
-        Meteor.customCall('addAdvertisingPay', advertisingId, addPay);
+    recaptcha: true,
+    callback: (result, recaptchaResponse) => {
+      const amount = parseInt(result, 10);
+      if (amount) {
+        Meteor.customCall('addAdvertisingPay', { advertisingId, amount, recaptchaResponse });
       }
     }
   });
@@ -182,15 +183,15 @@ function handleAdvertisingInputChange(event) {
   }
 }
 function saveAdvertisingModel(model) {
-  const submitData = _.pick(model, 'paid', 'message');
-  submitData.paid += parseInt(model.extraPaid, 10);
-  let totalPaid = submitData.paid;
-  let advertisingSample = submitData.message;
+  const advertisingData = _.pick(model, 'paid', 'message');
+  advertisingData.paid += parseInt(model.extraPaid, 10);
+  let totalPaid = advertisingData.paid;
+  let advertisingSample = advertisingData.message;
   if (model.url.length > 0) {
-    submitData.url = model.url;
+    advertisingData.url = model.url;
     totalPaid += 100;
     advertisingSample = `
-      <a href="${submitData.url}" target="_blank">
+      <a href="${advertisingData.url}" target="_blank">
         ${_.escape(advertisingSample)}
       </a>
     `;
@@ -203,9 +204,10 @@ function saveAdvertisingModel(model) {
   `;
   alertDialog.confirm({
     message,
-    callback: (result) => {
+    recaptcha: true,
+    callback: (result, recaptchaResponse) => {
       if (result) {
-        Meteor.customCall('buyAdvertising', submitData, () => {
+        Meteor.customCall('buyAdvertising', { advertisingData, recaptchaResponse }, () => {
           rInBuyAdvertisingMode.set(false);
         });
       }

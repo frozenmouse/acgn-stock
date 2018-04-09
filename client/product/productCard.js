@@ -116,12 +116,13 @@ Template.productCard.events({
         alertDialog.confirm({
           title: '購買產品 - 確認花費',
           message: `確定要花費${costMessageList.join('以及')}來購買產品？`,
-          callback: (confirmResult) => {
+          recaptcha: true,
+          callback: (confirmResult, recaptchaResponse) => {
             if (! confirmResult) {
               return;
             }
 
-            Meteor.customCall('buyProduct', { productId, amount });
+            Meteor.customCall('buyProduct', { productId, amount, recaptchaResponse });
           }
         });
       }

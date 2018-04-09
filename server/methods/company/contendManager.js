@@ -5,13 +5,16 @@ import { Meteor } from 'meteor/meteor';
 import { dbCompanies } from '/db/dbCompanies';
 import { dbLog } from '/db/dbLog';
 import { limitMethod } from '/server/imports/utils/rateLimit';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { resourceManager } from '/server/imports/threading/resourceManager';
 import { debug } from '/server/imports/utils/debug';
 
 Meteor.methods({
-  contendManager(companyId) {
+  contendManager({ companyId, recaptchaResponse }) {
     check(this.userId, String);
     check(companyId, String);
+    verifyRecaptchaResponse(recaptchaResponse);
+
     contendManager(Meteor.user(), companyId);
 
     return true;

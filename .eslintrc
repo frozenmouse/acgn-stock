@@ -16,9 +16,6 @@
     "es6": true,
     "node": true
   },
-  "globals": {
-    "Highcharts": true
-  },
   "plugins": [],
   "settings": {
     "import/resolver": "meteor"

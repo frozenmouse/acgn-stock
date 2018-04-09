@@ -1,7 +1,9 @@
 {
+  "recaptchaSecret": "PLACE_YOUR_SECRET_KEY_HERE",
   "public": {
     "debugMode": false,
     "websiteName": "ACGN股票交易市場",
+    "recaptchaSiteKey": "PLACE_YOUR_SITE_KEY_HERE",
     "intervalTimer": 60000,
     "releaseStocksForHighPriceMinCounter": 180,
     "releaseStocksForHighPriceMaxCounter": 360,

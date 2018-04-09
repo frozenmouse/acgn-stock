@@ -4,17 +4,20 @@ import { check, Match } from 'meteor/check';
 
 import { dbAdvertising } from '/db/dbAdvertising';
 import { dbLog } from '/db/dbLog';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { resourceManager } from '/server/imports/threading/resourceManager';
 import { debug } from '/server/imports/utils/debug';
 
 Meteor.methods({
-  buyAdvertising(advertisingData) {
+  buyAdvertising({ advertisingData, recaptchaResponse }) {
     check(this.userId, String);
     check(advertisingData, {
       paid: Match.Integer,
       message: String,
       url: new Match.Optional(String)
     });
+    verifyRecaptchaResponse(recaptchaResponse);
+
     buyAdvertising(Meteor.user(), advertisingData);
 
     return true;

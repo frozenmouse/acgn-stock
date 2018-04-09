@@ -19,13 +19,16 @@
             </div>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer flex-wrap">
+          {{#if recaptchaEnabled}}
+            <div class="g-recaptcha mr-auto"></div>
+          {{/if}}
           {{#if showCancelButton}}
-            <button type="reset" class="btn btn-secondary">
+            <button type="reset" class="btn btn-secondary my-1">
               取消
             </button>
           {{/if}}
-          <button type="submit" class="btn btn-primary">
+          <button type="submit" class="btn btn-primary my-1">
             確認
           </button>
         </div>

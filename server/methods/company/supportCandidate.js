@@ -6,14 +6,17 @@ import { dbCompanies } from '/db/dbCompanies';
 import { dbDirectors } from '/db/dbDirectors';
 import { dbLog } from '/db/dbLog';
 import { limitMethod } from '/server/imports/utils/rateLimit';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { resourceManager } from '/server/imports/threading/resourceManager';
 import { debug } from '/server/imports/utils/debug';
 
 Meteor.methods({
-  supportCandidate(companyId, supportUserId) {
+  supportCandidate({ companyId, supportUserId, recaptchaResponse }) {
     check(this.userId, String);
     check(companyId, String);
     check(supportUserId, String);
+    verifyRecaptchaResponse(recaptchaResponse);
+
     supportCandidate(Meteor.user(), companyId, supportUserId);
 
     return true;

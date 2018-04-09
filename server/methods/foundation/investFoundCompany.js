@@ -5,14 +5,17 @@ import { check, Match } from 'meteor/check';
 import { dbFoundations } from '/db/dbFoundations';
 import { dbLog } from '/db/dbLog';
 import { limitMethod } from '/server/imports/utils/rateLimit';
+import { verifyRecaptchaResponse } from '/server/imports/utils/verifyRecaptchaResponse';
 import { debug } from '/server/imports/utils/debug';
 import { resourceManager } from '/server/imports/threading/resourceManager';
 
 Meteor.methods({
-  investFoundCompany(companyId, amount) {
+  investFoundCompany({ companyId, amount, recaptchaResponse }) {
     check(this.userId, String);
     check(companyId, String);
     check(amount, Match.Integer);
+    verifyRecaptchaResponse(recaptchaResponse);
+
     investFoundCompany(Meteor.user(), companyId, amount);
 
     return true;
